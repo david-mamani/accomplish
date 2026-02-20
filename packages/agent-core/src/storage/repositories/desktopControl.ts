@@ -22,6 +22,18 @@ function getBlocklistJson(): string | null {
   return row?.desktop_blocklist ?? null;
 }
 
+function isBlocklistEntry(item: unknown): item is BlocklistEntry {
+  if (typeof item !== 'object' || item === null) {
+    return false;
+  }
+  const obj = item as Record<string, unknown>;
+  return (
+    typeof obj.appName === 'string' &&
+    typeof obj.pattern === 'string' &&
+    typeof obj.reason === 'string'
+  );
+}
+
 function parseBlocklist(json: string | null): BlocklistEntry[] {
   if (!json) {
     return [];
@@ -31,7 +43,7 @@ function parseBlocklist(json: string | null): BlocklistEntry[] {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed as BlocklistEntry[];
+    return parsed.filter(isBlocklistEntry);
   } catch {
     return [];
   }
