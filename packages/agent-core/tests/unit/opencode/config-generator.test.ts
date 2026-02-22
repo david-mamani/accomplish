@@ -206,8 +206,11 @@ describe('ConfigGenerator', () => {
             command: '/test',
             description: 'A test skill',
             filePath: '/path/to/skill.md',
-            isOfficial: true,
-            enabled: true,
+            source: 'official',
+            isEnabled: true,
+            isVerified: true,
+            isHidden: false,
+            updatedAt: new Date().toISOString(),
           },
         ],
       };
@@ -736,10 +739,16 @@ describe('ConfigGenerator', () => {
         isPackaged: false,
         skills: [
           {
+            id: 'test-skill',
             name: 'test-skill',
             command: '/test',
             description: 'A test skill',
             filePath: '/tmp/skill',
+            source: 'custom',
+            isEnabled: true,
+            isVerified: false,
+            isHidden: false,
+            updatedAt: new Date().toISOString(),
           },
         ],
       });

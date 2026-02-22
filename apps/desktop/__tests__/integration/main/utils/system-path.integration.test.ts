@@ -43,8 +43,8 @@ vi.mock('child_process', () => ({
 }));
 
 describe('System PATH Utilities', () => {
-  let _getExtendedNodePath: typeof import('@main/utils/system-path').getExtendedNodePath;
-  let findCommandInPath: typeof import('@main/utils/system-path').findCommandInPath;
+  let _getExtendedNodePath: typeof import('../../../../src/main/utils/system-path').getExtendedNodePath;
+  let findCommandInPath: typeof import('../../../../src/main/utils/system-path').findCommandInPath;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -55,7 +55,7 @@ describe('System PATH Utilities', () => {
     process.env.HOME = '/Users/testuser';
 
     // Re-import module to get fresh state
-    const module = await import('@main/utils/system-path');
+    const module = await import('../../../../src/main/utils/system-path');
     _getExtendedNodePath = module.getExtendedNodePath;
     findCommandInPath = module.findCommandInPath;
   });
@@ -75,7 +75,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import for platform change
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath(basePath);
@@ -91,7 +91,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import for platform change
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath(basePath);
@@ -117,7 +117,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import for platform change
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('/original/path');
@@ -147,7 +147,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('');
@@ -175,7 +175,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('');
@@ -203,7 +203,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('');
@@ -225,7 +225,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('');
@@ -247,7 +247,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act - should not throw
         const result = module.getExtendedNodePath('/base/path');
@@ -267,7 +267,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('/usr/local/bin');
@@ -287,7 +287,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath();
@@ -308,7 +308,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('');
@@ -329,7 +329,7 @@ describe('System PATH Utilities', () => {
 
         // Re-import
         vi.resetModules();
-        const module = await import('@main/utils/system-path');
+        const module = await import('../../../../src/main/utils/system-path');
 
         // Act
         const result = module.getExtendedNodePath('');
@@ -523,15 +523,15 @@ describe('System PATH Utilities', () => {
 
       // Re-import
       vi.resetModules();
-      const module = await import('@main/utils/system-path');
+      const module = await import('../../../../src/main/utils/system-path');
 
       // Act
       const result = module.getExtendedNodePath('');
       // Assert - NVM should come before Homebrew
       const delimiter = _path.delimiter || (process.platform === 'win32' ? ';' : ':');
-      const pathParts = result.split(delimiter).map((p) => p.replace(/\\/g, '/'));
-      const nvmIndex = pathParts.findIndex((p) => p.includes('.nvm'));
-      const homebrewIndex = pathParts.findIndex((p) => p.includes('homebrew'));
+      const pathParts = result.split(delimiter).map((p: string) => p.replace(/\\/g, '/'));
+      const nvmIndex = pathParts.findIndex((p: string) => p.includes('.nvm'));
+      const homebrewIndex = pathParts.findIndex((p: string) => p.includes('homebrew'));
 
       expect(nvmIndex).toBeLessThan(homebrewIndex);
     });
