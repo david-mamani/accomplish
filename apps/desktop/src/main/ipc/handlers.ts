@@ -1354,6 +1354,19 @@ export function registerIPCHandlers(): void {
     storage.deleteConnectorTokens(connectorId);
     storage.setConnectorStatus(connectorId, 'disconnected');
   });
+
+  // React to OS-level theme changes (e.g. macOS System Preferences → Appearance)
+  nativeTheme.on('updated', () => {
+    const preference = storage.getTheme();
+    if (preference === 'system') {
+      const resolved = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) {
+          win.webContents.send('settings:theme-changed', { theme: 'system', resolved });
+        }
+      }
+    }
+  });
 }
 
 // In-memory store for pending OAuth flows (keyed by state parameter)

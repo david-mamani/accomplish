@@ -20,7 +20,7 @@ function getOperationBadgeClasses(operation?: string): string {
     case 'move':
       return 'bg-blue-500/10 text-blue-600';
     default:
-      return 'bg-gray-500/10 text-gray-600';
+      return 'bg-muted text-muted-foreground';
   }
 }
 

@@ -37,7 +37,7 @@ export function TaskLauncherItem({ task, isSelected, onClick }: TaskLauncherItem
             <span
               key={domain}
               className={cn(
-                'flex items-center p-0.5 rounded-full bg-white shrink-0 relative',
+                'flex items-center p-0.5 rounded-full bg-background shrink-0 relative',
                 i > 0 && '-ml-1',
                 i === 0 && 'z-30',
                 i === 1 && 'z-20',

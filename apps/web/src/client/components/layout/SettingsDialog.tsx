@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { settingsVariants, settingsTransitions } from '@/lib/animations';
 import { getAccomplish } from '@/lib/accomplish';
+import { applyTheme } from '@/lib/theme';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { ProviderId, ConnectedProvider } from '@accomplish_ai/agent-core/common';
 import { hasAnyReadyProvider, isProviderReady } from '@accomplish_ai/agent-core/common';
@@ -14,7 +15,7 @@ import { SkillsPanel, AddSkillDropdown } from '@/components/settings/skills';
 import { AboutTab } from '@/components/settings/AboutTab';
 import { DebugSection } from '@/components/settings/DebugSection';
 import { ConnectorsPanel } from '@/components/settings/connectors';
-import { Key, Lightning, Microphone, Info, Plugs } from '@phosphor-icons/react';
+import { Key, Lightning, Microphone, Info, Plugs, Palette } from '@phosphor-icons/react';
 import { cn } from '@/lib/utils';
 import logoImage from '/assets/logo-1.png';
 
@@ -23,7 +24,16 @@ const TABS = [
   { id: 'skills' as const, labelKey: 'tabs.skills', icon: Lightning },
   { id: 'connectors' as const, labelKey: 'tabs.connectors', icon: Plugs },
   { id: 'voice' as const, labelKey: 'tabs.voiceInput', icon: Microphone },
+  { id: 'appearance' as const, labelKey: 'tabs.appearance', icon: Palette },
   { id: 'about' as const, labelKey: 'tabs.about', icon: Info },
+];
+
+type ThemePreference = 'system' | 'light' | 'dark';
+
+const THEME_OPTIONS: { value: ThemePreference; labelKey: string }[] = [
+  { value: 'system', labelKey: 'appearance.system' },
+  { value: 'light', labelKey: 'appearance.light' },
+  { value: 'dark', labelKey: 'appearance.dark' },
 ];
 
 // First 4 providers shown in collapsed view (matches PROVIDER_ORDER in ProviderGrid)
@@ -35,9 +45,9 @@ interface SettingsDialogProps {
   onApiKeySaved?: () => void;
   initialProvider?: ProviderId;
   /**
-   * Initial tab to show when dialog opens ('providers' or 'voice')
+   * Initial tab to show when dialog opens
    */
-  initialTab?: 'providers' | 'voice' | 'skills' | 'connectors' | 'about';
+  initialTab?: 'providers' | 'voice' | 'skills' | 'connectors' | 'appearance' | 'about';
 }
 
 export function SettingsDialog({
@@ -53,8 +63,9 @@ export function SettingsDialog({
   const [closeWarning, setCloseWarning] = useState(false);
   const [showModelError, setShowModelError] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'providers' | 'voice' | 'skills' | 'connectors' | 'about'
+    'providers' | 'voice' | 'skills' | 'connectors' | 'appearance' | 'about'
   >(initialTab);
+  const [themePreference, setThemePreference] = useState<ThemePreference>('system');
   const [appVersion, setAppVersion] = useState<string>('');
   const [skillsRefreshTrigger, setSkillsRefreshTrigger] = useState(0);
 
@@ -80,6 +91,13 @@ export function SettingsDialog({
     accomplish.getDebugMode().then(setDebugModeState);
     // Load app version
     accomplish.getVersion().then(setAppVersion);
+    // Load current theme preference
+    accomplish.getTheme().then((theme) => {
+      const validated = (
+        ['system', 'light', 'dark'].includes(theme) ? theme : 'system'
+      ) as ThemePreference;
+      setThemePreference(validated);
+    });
   }, [open, refetch, accomplish]);
 
   // Reset/initialize state when dialog opens or closes
@@ -204,6 +222,16 @@ export function SettingsDialog({
     await accomplish.setDebugMode(newValue);
     setDebugModeState(newValue);
   }, [debugMode, accomplish]);
+
+  // Handle theme preference change
+  const handleThemeChange = useCallback(
+    async (theme: ThemePreference) => {
+      setThemePreference(theme);
+      applyTheme(theme);
+      await accomplish.setTheme(theme);
+    },
+    [accomplish],
+  );
 
   // Handle done button (close with validation)
   const handleDone = useCallback(() => {
@@ -442,6 +470,37 @@ export function SettingsDialog({
               {activeTab === 'voice' && (
                 <div className="space-y-6">
                   <SpeechSettingsForm />
+                </div>
+              )}
+
+              {/* Appearance Tab */}
+              {activeTab === 'appearance' && (
+                <div className="space-y-6">
+                  <section>
+                    <h4 className="text-sm font-medium text-foreground mb-1">
+                      {t('appearance.title')}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      {t('appearance.description')}
+                    </p>
+                    <div className="inline-flex rounded-lg border border-border p-1 bg-muted/40">
+                      {THEME_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => handleThemeChange(option.value)}
+                          className={cn(
+                            'px-4 py-1.5 text-sm font-medium rounded-md transition-all',
+                            themePreference === option.value
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground',
+                          )}
+                          data-testid={`theme-option-${option.value}`}
+                        >
+                          {t(option.labelKey)}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
                 </div>
               )}
 

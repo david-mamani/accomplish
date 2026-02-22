@@ -26,6 +26,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vite
 vi.mock('electron', () => {
   const mockHandlers = new Map<string, (...args: unknown[]) => unknown>();
   const mockListeners = new Map<string, Set<(...args: unknown[]) => unknown>>();
+  const nativeThemeListeners = new Map<string, Set<(...args: unknown[]) => void>>();
 
   return {
     ipcMain: {
@@ -69,7 +70,35 @@ vi.mock('electron', () => {
         id: 1,
         isDestroyed: vi.fn(() => false),
       })),
-      getAllWindows: vi.fn(() => [{ id: 1, webContents: { send: vi.fn() } }]),
+      getAllWindows: vi.fn(() => [
+        {
+          id: 1,
+          isDestroyed: vi.fn(() => false),
+          webContents: { send: vi.fn() },
+        },
+      ]),
+    },
+    nativeTheme: {
+      themeSource: 'system' as string,
+      shouldUseDarkColors: false,
+      on: vi.fn((event: string, listener: (...args: unknown[]) => void) => {
+        if (!nativeThemeListeners.has(event)) {
+          nativeThemeListeners.set(event, new Set());
+        }
+        nativeThemeListeners.get(event)!.add(listener);
+      }),
+      removeListener: vi.fn(),
+      _emit: (event: string) => {
+        const listeners = nativeThemeListeners.get(event);
+        if (listeners) {
+          for (const listener of listeners) {
+            listener();
+          }
+        }
+      },
+      _clearListeners: () => {
+        nativeThemeListeners.clear();
+      },
     },
     shell: {
       openExternal: vi.fn(),
@@ -123,6 +152,7 @@ let mockDebugMode = false;
 let mockOnboardingComplete = false;
 let mockSelectedModel: { provider: string; model: string } | null = null;
 let mockOpenAiBaseUrl = '';
+let mockTheme = 'system';
 
 // Mock @accomplish_ai/agent-core - comprehensive mock covering all exports used by handlers.ts
 vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
@@ -191,6 +221,12 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
     getLMStudioConfig: vi.fn(() => null),
     setLMStudioConfig: vi.fn(),
     clearAppSettings: vi.fn(),
+
+    // Theme settings
+    getTheme: vi.fn(() => mockTheme),
+    setTheme: vi.fn((theme: string) => {
+      mockTheme = theme;
+    }),
 
     // Provider settings
     getProviderSettings: vi.fn(() => ({
@@ -407,6 +443,7 @@ describe('IPC Handlers Integration', () => {
     mockOnboardingComplete = false;
     mockSelectedModel = null;
     mockPendingPermissions.clear();
+    mockTheme = 'system';
 
     // Reset task manager mocks
     mockTaskManager.startTask.mockReset();
@@ -2066,4 +2103,63 @@ describe('IPC Handlers Integration', () => {
   // The callback logic is exercised through the task lifecycle tests above.
   // The utility functions (extractScreenshots, sanitizeToolOutput)
   // are tested in handlers-utils.unit.test.ts as pure function tests.
+
+  describe('Theme Handlers', () => {
+    beforeEach(() => {
+      // Re-set BrowserWindow.getAllWindows return value (cleared by vi.clearAllMocks)
+      (_BrowserWindow.getAllWindows as Mock).mockReturnValue([
+        {
+          id: 1,
+          isDestroyed: vi.fn(() => false),
+          webContents: { send: vi.fn() },
+        },
+      ]);
+      registerIPCHandlers();
+    });
+
+    it('settings:theme should return the current theme preference', async () => {
+      // Arrange
+      mockTheme = 'dark';
+
+      // Act
+      const result = await invokeHandler('settings:theme');
+
+      // Assert
+      expect(result).toBe('dark');
+    });
+
+    it('settings:set-theme should update theme to dark', async () => {
+      // Arrange
+      mockTheme = 'system';
+
+      // Act
+      await invokeHandler('settings:set-theme', 'dark');
+
+      // Assert
+      const { setTheme } = await import('@accomplish_ai/agent-core');
+      expect(setTheme).toHaveBeenCalledWith('dark');
+    });
+
+    it('settings:set-theme should update theme to system', async () => {
+      // Arrange
+      mockTheme = 'dark';
+
+      // Act
+      await invokeHandler('settings:set-theme', 'system');
+
+      // Assert
+      const { setTheme } = await import('@accomplish_ai/agent-core');
+      expect(setTheme).toHaveBeenCalledWith('system');
+    });
+
+    it('settings:theme should return system as default', async () => {
+      // Arrange - default mockTheme is 'system'
+
+      // Act
+      const result = await invokeHandler('settings:theme');
+
+      // Assert
+      expect(result).toBe('system');
+    });
+  });
 });
