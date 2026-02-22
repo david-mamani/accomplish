@@ -43,6 +43,10 @@ vi.mock('child_process', () => ({
   execFile: vi.fn(),
 }));
 
+vi.mock('node-pty', () => ({
+  spawn: vi.fn(),
+}));
+
 // Mock @accomplish_ai/agent-core cli-resolver functions - they use fs internally which is already mocked
 // We need to pass through to the actual implementation since it uses the mocked fs
 vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
@@ -63,8 +67,17 @@ vi.mock('@accomplish_ai/agent-core', async (importOriginal) => {
 });
 
 describe('OpenCode CLI Path Module', () => {
+  const originalPlatform = process.platform;
+
   beforeEach(() => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
     vi.clearAllMocks();
+    mockExecSync.mockImplementation((cmd: string) => {
+      if (cmd.includes('which opencode') || cmd.includes('where opencode')) {
+        throw new Error('Command failed');
+      }
+      return '';
+    });
     // Reset module state
     vi.resetModules();
     // Reset packaged state
@@ -74,6 +87,7 @@ describe('OpenCode CLI Path Module', () => {
   });
 
   afterEach(() => {
+    Object.defineProperty(process, 'platform', { value: originalPlatform });
     vi.restoreAllMocks();
   });
 
@@ -86,12 +100,15 @@ describe('OpenCode CLI Path Module', () => {
         const expectedPath = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
 
         mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return true;
-          if (p === expectedPath) return true;
+          const np = p.replace(/\\/g, '/');
+          const normalizedExpected = expectedPath.replace(/\\/g, '/');
+          if (np === nvmVersionsDir) return true;
+          if (np === normalizedExpected) return true;
           return false;
         });
         mockFs.readdirSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return ['v20.10.0'];
+          const np = p.replace(/\\/g, '/');
+          if (np === nvmVersionsDir) return ['v20.10.0'];
           return [];
         });
 
@@ -249,15 +266,19 @@ describe('OpenCode CLI Path Module', () => {
         // Arrange
         mockApp.isPackaged = false;
         const nvmVersionsDir = '/Users/testuser/.nvm/versions/node';
-        const opencodePath = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
+        const expectedPath = path
+          .join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode')
+          .replace(/\\/g, '/');
 
         mockFs.existsSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return true;
-          if (p === opencodePath) return true;
+          const np = p.replace(/\\/g, '/');
+          if (np === nvmVersionsDir) return true;
+          if (np === expectedPath) return true;
           return false;
         });
         mockFs.readdirSync.mockImplementation((p: string) => {
-          if (p === nvmVersionsDir) return ['v20.10.0'];
+          const np = p.replace(/\\/g, '/');
+          if (np === nvmVersionsDir) return ['v20.10.0'];
           return [];
         });
 
@@ -512,13 +533,18 @@ describe('OpenCode CLI Path Module', () => {
       const v20Path = path.join(nvmVersionsDir, 'v20.10.0', 'bin', 'opencode');
 
       mockFs.existsSync.mockImplementation((p: string) => {
-        if (p === nvmVersionsDir) return true;
-        if (p === v20Path) return true;
-        if (p === v18Path) return false;
+        const np = p.replace(/\\/g, '/');
+        const normalizedV18 = v18Path.replace(/\\/g, '/');
+        const normalizedV20 = v20Path.replace(/\\/g, '/');
+
+        if (np === nvmVersionsDir) return true;
+        if (np === normalizedV20) return true;
+        if (np === normalizedV18) return false;
         return false;
       });
       mockFs.readdirSync.mockImplementation((p: string) => {
-        if (p === nvmVersionsDir) return ['v18.17.0', 'v20.10.0'];
+        const np = p.replace(/\\/g, '/');
+        if (np === nvmVersionsDir) return ['v20.10.0', 'v18.17.0'];
         return [];
       });
 

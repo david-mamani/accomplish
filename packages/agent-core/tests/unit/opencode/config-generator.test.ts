@@ -396,7 +396,7 @@ describe('ConfigGenerator', () => {
       // Should use node + dist path instead of tsx + src
       const command = result.mcpServers['file-permission'].command;
       expect(command?.[0]).toContain('node');
-      expect(command?.[1]).toContain('dist/index.mjs');
+      expect(command?.[1]?.replace(/\\/g, '/')).toContain('dist/index.mjs');
     });
 
     it('should use tsx for MCP entry when not packaged', () => {
